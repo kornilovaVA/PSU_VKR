@@ -1,0 +1,37 @@
+{
+    "solve_with_linear_programming_with_constraints": {
+        "method": "highs"
+    },
+    "solve_with_milp": {
+        "solver_name": "PULP_CBC_CMD",
+        "msg": false
+    },
+    "solve_with_linear_inequality": {
+        "solver_name": "CLARABEL"
+    },
+    "solve_with_least_squares_with_constraints": {
+        "method": "trf"
+    },
+    "solve_with_coordinate_descent": {
+        "max_iter": 1000
+    },
+    "solve_with_projected_gradient_descent": {
+        "max_iter": 1000,
+        "initial_step_size": 0.01
+    },
+    "solve_with_genetic_algorithm": {
+        "population_size": 100,
+        "generations": 50,
+        "cxpb": 0.5,
+        "mutpb": 0.2
+    },
+    "solve_with_simulated_annealing": {
+        "initial_temp": 1000,
+        "cooling_rate": 0.99,
+        "max_iter": 10000
+    },
+    "solve_with_branch_and_bound": {
+        "solver_name": "PULP_CBC_CMD",
+        "msg": 0
+    }
+}

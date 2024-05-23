@@ -1,0 +1,71 @@
+{
+    "test_set_1": {
+        "name": "test_set_1", 
+        "matrix": [[1, 2], [3, 4]], 
+        "vector": [5, 11]
+    }, 
+    "test_set_2": {
+        "name": "test_set_2", 
+        "matrix": [[1, 2], [2, 4]], 
+        "vector": [3, 6]
+    }, 
+    "test_set_3": {
+        "name": "test_set_3", 
+        "matrix": [[1, 2], [2, 4]], 
+        "vector": [10, 20]}, 
+    "test_set_4": {
+        "name": "test_set_4", 
+        "matrix": [[1, 1], [1, -1]], 
+        "vector": [0, 0]
+    }, 
+    "test_set_5": {
+        "name": "test_set_5", 
+        "matrix": [[1, 0, 2], [0, 1, 1], [1, 1, 1]], 
+        "vector": [4, 3, 5]
+    }, 
+    "test_set_6": {
+        "name": "test_set_6", 
+        "matrix": [[-1, -2], [3, 4]], 
+        "vector": [-5, -10]
+    }, 
+    "test_set_7": {
+        "name": "test_set_7", 
+        "matrix": [[1, 1, 0, 0, 0], [0, 1, 1, 1, 0], [0, 0, 0, 1, 1]], 
+        "vector": [105, 100, 50]
+    }, 
+    "test_set_8_1": {
+        "name": "test_set_8_1", 
+        "matrix": [[0, 1, 0], [0, 1, 0]], 
+        "vector": [100, 100]
+    }, 
+    "test_set_8_2": {
+        "name": "test_set_8_2", 
+        "matrix": [[0, 1, 0], [0, 1, 0]], 
+        "vector": [100, 139]
+    }, 
+    "test_set_9": {
+        "name": "test_set_9", 
+        "matrix": [[0, 1, 0, 0, 0], [0, 0, 0, 1, 0]], 
+        "vector": [100, 139]
+    }, 
+    "test_set_10_1": {
+        "name": "test_set_10_1", 
+        "matrix": [[0, 1, 1, 0, 0, 0], [0, 0, 1, 1, 0, 0], [0, 0, 0, 1, 1, 0]], 
+        "vector": [100, 100, 100]
+    }, 
+    "test_set_10_2": {
+        "name": "test_set_10_2", 
+        "matrix": [[0, 1, 1, 0, 0, 0], [0, 0, 1, 1, 0, 0], [0, 0, 0, 1, 1, 0]], 
+        "vector": [100, 100, 139]
+    }, 
+    "test_set_10_3": {
+        "name": "test_set_10_3", 
+        "matrix": [[0, 1, 1, 0, 0, 0], [0, 0, 1, 1, 0, 0], [0, 0, 0, 1, 1, 0]], 
+        "vector": [100, 139, 100]
+    }, 
+    "test_set_10_4": {
+        "name": "test_set_10_4", 
+        "matrix": [[0, 1, 1, 0, 0, 0], [0, 0, 1, 1, 0, 0], [0, 0, 0, 1, 1, 0]], 
+        "vector": [139, 100, 100]
+    }
+}
