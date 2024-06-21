@@ -11,65 +11,52 @@ solver_dict = {
 
 # 1. Линейное программирование
 def solve_with_linear_programming_with_constraints(A, y0, x_min=0, method='highs'):
-    
     n = A.shape[1]
     
     if isinstance(x_min, (int, float)):
         x_min = np.full(n, np.ceil(x_min), dtype=int)
     
-    # Целевая функция (минимизация суммы x)
     c = np.ones(n)
-    
-    # Матрица ограничений
     A_ub = -A
     b_ub = -y0
-    
-    # Ограничения на x снизу
     bounds = [(x_min[i], None) for i in range(n)]
     
-    # Решение задачи линейного программирования
     result = linprog(c, A_ub=A_ub, b_ub=b_ub, bounds=bounds, method=method)
     
-    # Округление решения до целых чисел
-    x = np.ceil(result.x).astype(int)
-    
-    # Вычисление результирующего вектора y
-    y = A @ x
+    if result.success:
+        x = np.ceil(result.x).astype(int)
+        y = A @ x
+    else:
+        x = np.zeros(n, dtype=int)
+        y = A @ x
     
     return x, y
 
-# 2.Mixed-Integer Linear Programming (MILP)
-def solve_with_milp(A, y0, x_min=0, solver_name = "PULP_CBC_CMD", msg=False):
-    # Число переменных
+# 2. Mixed-Integer Linear Programming (MILP)
+def solve_with_milp(A, y0, x_min=0, solver_name="PULP_CBC_CMD", msg=False):
     n = A.shape[1]
     
     if isinstance(x_min, (int, float)):
         x_min = np.full(n, np.ceil(x_min), dtype=int)
     
-    # Создаем модель
     model = pulp.LpProblem("My_LP_Model", pulp.LpMinimize)
-    
-    # Определяем переменные
     x = [pulp.LpVariable(f"x_{i}", lowBound=x_min[i], cat=pulp.LpInteger) for i in range(n)]
-    
-    # Целевая функция: минимизация суммы x (можно выбрать другую цель)
     model += pulp.lpSum([x[i] for i in range(n)])
     
-    # Ограничения Ax >= y0
     for i in range(len(y0)):
         model += pulp.lpDot([A[i][j] for j in range(n)], [x[j] for j in range(n)]) >= y0[i], f"Constraint_{i}"
     
-    # Решаем задачу, отключаем вывод отладочных сообщений
-    model.solve(solver = solver_dict[solver_name](msg=msg))
+    model.solve(solver=solver_dict[solver_name](msg=msg))
     
     if model.status == pulp.LpStatusOptimal:
-        # Если решение найдено, выводим его
-        solution = np.array([pulp.value(x[i]) for i in range(n)], dtype=int)
-        resulting_y = np.dot(A, solution)
-        return solution, resulting_y
+        result_x = np.array([x[j].value() for j in range(n)], dtype=int)
+        result_y = np.dot(A, result_x)
     else:
-        return None, None
+        result_x = np.zeros(n, dtype=int)
+        result_y = A @ result_x
     
+    return result_x, result_y
+
 # 3. Метод последовательного квадратичного программирования (SQP)
 def solve_with_linear_inequality(A, y0, x_min=0, solver_name="CLARABEL"):
     
@@ -88,26 +75,25 @@ def solve_with_linear_inequality(A, y0, x_min=0, solver_name="CLARABEL"):
     
     # Ограничения
     constraints = [y >= y0, x >= x_min]
-    
     # Целевая функция (минимизация нормы)
     objective = cp.Minimize(cp.norm(y - y0))
-    
     # Формулировка и решение задачи
     problem = cp.Problem(objective, constraints)
-    
     # Решение задачи с использованием решателя по умолчанию (Clarabel)
     problem.solve(solver=solver_dict[solver_name])
     
     # Проверка статуса решения
     if problem.status not in ["infeasible", "unbounded"]:
-        # Округление результата до целых чисел
         x_int = np.round(x.value).astype(int)
         y_result = A @ x_int
         return x_int, y_result
     else:
-        raise ValueError("Задача не имеет допустимого решения.")
+        result_x = np.zeros(n, dtype=int)
+        result_y = A @ result_x
+    
+    return result_x, result_y
 
-# 4. Метод наименьших квадратов с ограничениями    
+# 4. Решение методом наименьших квадратов с ограничениями
 def solve_with_least_squares_with_constraints(A, y0, x_min=0, method='trf'):
     
     n = A.shape[1]
@@ -115,14 +101,15 @@ def solve_with_least_squares_with_constraints(A, y0, x_min=0, method='trf'):
     if isinstance(x_min, (int, float)):
         x_min = np.full(n, np.ceil(x_min), dtype=int)
     
-    # Ограничения снизу
     bounds = (x_min, np.inf)
-    
-    # Решение задачи наименьших квадратов с ограничениями
     result = lsq_linear(A, y0, bounds=bounds, method=method)
     
-    x = np.ceil(result.x).astype(int)
-    y = A @ x
+    if result.success:
+        x = np.ceil(result.x).astype(int)
+        y = A @ x
+    else:
+        x = np.zeros(n, dtype=int)
+        y = A @ x
     
     return x, y
 
@@ -181,33 +168,23 @@ def solve_with_projected_gradient_descent(A, y0, x_min=0, max_iter=1000, initial
     step_size = initial_step_size
     
     for iteration in range(max_iter):
-        # Вычисление градиента
+
         gradient = A.T @ np.maximum(0, y0 - A @ x)
-        
-        # Обновление размера шага (затухание)
         step_size = initial_step_size / (1 + iteration / 100)
         
-        # Обновление x с учетом адаптивного размера шага
         x = x + step_size * gradient
-        
-        # Проекция на множество допустимых значений
         x = project(x)
         
-        # Проверка условия выхода
         if np.all(A @ x >= y0):
             break
     
-    # Округление решения до целых чисел
     x = np.ceil(x).astype(int)
-    
-    # Вычисление результирующего вектора y
     y = A @ x
     
     return x, y
 
 # 7. Генетический алгоритм
 def solve_with_genetic_algorithm(A, y0, x_min=0, population_size=100, generations=50, cxpb=0.5, mutpb=0.2):
-    
     n = A.shape[1]
     
     if isinstance(x_min, (int, float)):
@@ -242,7 +219,18 @@ def solve_with_genetic_algorithm(A, y0, x_min=0, population_size=100, generation
     
     # Инициализация x случайным образом в рамках ограничений
     def init_individual(icls):
-        individual = [np.random.randint(low=x_min[i], high=x_min[i] + 10) for i in range(A.shape[1])]
+        individual = []
+        for i in range(A.shape[1]):
+            low = x_min[i]
+            high = low + 10
+            if high <= low:
+                high = low + 1
+            try:
+                val = np.random.randint(low=low, high=high)
+            except ValueError as e:
+                print(f"ValueError: {e}, low={low}, high={high}")
+                raise
+            individual.append(val)
         return icls(individual)
 
     toolbox.register("individual", init_individual, creator.Individual)
@@ -264,11 +252,26 @@ def solve_with_genetic_algorithm(A, y0, x_min=0, population_size=100, generation
     
     # Основной цикл генетического алгоритма
     for gen in range(generations):
-        offspring = algorithms.varAnd(population, toolbox, cxpb=cxpb, mutpb=mutpb)
+        offspring = [toolbox.clone(ind) for ind in population]
+
+        # Применение кроссовера и мутации к потомкам
+        for child1, child2 in zip(offspring[::2], offspring[1::2]):
+            if len(child1) > 1 and len(child2) > 1:
+                if np.random.rand() < cxpb:
+                    toolbox.mate(child1, child2)
+                    del child1.fitness.values
+                    del child2.fitness.values
+
+        for mutant in offspring:
+            if np.random.rand() < mutpb:
+                toolbox.mutate(mutant)
+                del mutant.fitness.values
+
         offspring = apply_bounds(offspring, x_min)
         fits = map(toolbox.evaluate, offspring)
         for fit, ind in zip(fits, offspring):
             ind.fitness.values = fit
+
         population = toolbox.select(offspring, k=len(population))
 
     best_ind = tools.selBest(population, 1)[0]
@@ -316,32 +319,26 @@ def solve_with_simulated_annealing(A, y0, x_min=0, initial_temp = 1000, cooling_
 def solve_with_branch_and_bound(A, y0, x_min=0, solver_name="PULP_CBC_CMD", msg=0):
     m, n = A.shape
     
-    # Если x_min является числом, создаем массив нижних границ
     if isinstance(x_min, (int, float)):
         x_min = np.full(n, np.ceil(x_min), dtype=int)
     
-    # Создаем модель
     model = pulp.LpProblem("Branch_and_Bound_Problem", pulp.LpMinimize)
-    
-    # Определяем переменные
     x = {i: pulp.LpVariable(f"x_{i}", lowBound=x_min[i], cat=pulp.LpInteger) for i in range(n)}
-    
-    # Определяем целевую функцию - минимизация суммы x
     model += pulp.lpSum(x[i] for i in range(n))
     
-    # Добавляем ограничения Ax >= y0
     for i in range(m):
         model += pulp.lpSum(A[i, j] * x[j] for j in range(n)) >= y0[i], f"Constraint_{i}"
     
-    # Решаем задачу, отключаем вывод отладочных сообщений
-    model.solve(solver = solver_dict[solver_name](msg=msg))
+    model.solve(solver=solver_dict[solver_name](msg=msg))
     
     if model.status == pulp.LpStatusOptimal:
         result_x = np.array([x[j].value() for j in range(n)], dtype=int)
         result_y = np.dot(A, result_x)
-        return result_x, result_y
     else:
-        return None, None
+        result_x = np.zeros(n, dtype=int)
+        result_y = A @ result_x
+    
+    return result_x, result_y
 
 functions = [
     solve_with_linear_programming_with_constraints,

@@ -11,7 +11,7 @@ with open(script_dir/'test_data.json', 'r') as f:
     data = json.load(f)
     
 test_cases = [
-    (np.array(case['matrix']), np.array(case['vector'])) for case in data.values()
+    (np.array(case['name']), np.array(case['matrix']), np.array(case['vector'])) for case in data.values()
     ]   
 test_cases_names = [
     case['name'] for case in data.values()
@@ -25,6 +25,7 @@ def run_comprehensive_tests(functions, test_cases, x_min=0):
         return np.mean((y - y0) ** 2)
 
     def calc_sum(x):
+        
         return np.sum(np.abs(x))
 
     def calc_uniform_distr(x):
@@ -36,7 +37,9 @@ def run_comprehensive_tests(functions, test_cases, x_min=0):
     for func in functions:
         func_name = func.__name__  
         func_results = []
-        for A, y0 in test_cases:
+        for name, A, y0 in test_cases:
+            
+            print(name)
             
             kwargs = config.get(func_name, {})
             
