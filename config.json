@@ -2,10 +2,6 @@
     "solve_with_linear_programming_with_constraints": {
         "method": "highs"
     },
-    "solve_with_milp": {
-        "solver_name": "PULP_CBC_CMD",
-        "msg": false
-    },
     "solve_with_linear_inequality": {
         "solver_name": "CLARABEL"
     },

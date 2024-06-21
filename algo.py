@@ -32,32 +32,7 @@ def solve_with_linear_programming_with_constraints(A, y0, x_min=0, method='highs
     
     return x, y
 
-# 2. Mixed-Integer Linear Programming (MILP)
-def solve_with_milp(A, y0, x_min=0, solver_name="PULP_CBC_CMD", msg=False):
-    n = A.shape[1]
-    
-    if isinstance(x_min, (int, float)):
-        x_min = np.full(n, np.ceil(x_min), dtype=int)
-    
-    model = pulp.LpProblem("My_LP_Model", pulp.LpMinimize)
-    x = [pulp.LpVariable(f"x_{i}", lowBound=x_min[i], cat=pulp.LpInteger) for i in range(n)]
-    model += pulp.lpSum([x[i] for i in range(n)])
-    
-    for i in range(len(y0)):
-        model += pulp.lpDot([A[i][j] for j in range(n)], [x[j] for j in range(n)]) >= y0[i], f"Constraint_{i}"
-    
-    model.solve(solver=solver_dict[solver_name](msg=msg))
-    
-    if model.status == pulp.LpStatusOptimal:
-        result_x = np.array([x[j].value() for j in range(n)], dtype=int)
-        result_y = np.dot(A, result_x)
-    else:
-        result_x = np.zeros(n, dtype=int)
-        result_y = A @ result_x
-    
-    return result_x, result_y
-
-# 3. Метод последовательного квадратичного программирования (SQP)
+# 2. Метод последовательного квадратичного программирования (SQP)
 def solve_with_linear_inequality(A, y0, x_min=0, solver_name="CLARABEL"):
     
     # Проверка размеров матрицы и вектора
@@ -93,7 +68,7 @@ def solve_with_linear_inequality(A, y0, x_min=0, solver_name="CLARABEL"):
     
     return result_x, result_y
 
-# 4. Решение методом наименьших квадратов с ограничениями
+# 3. Решение методом наименьших квадратов с ограничениями
 def solve_with_least_squares_with_constraints(A, y0, x_min=0, method='trf'):
     
     n = A.shape[1]
@@ -113,7 +88,7 @@ def solve_with_least_squares_with_constraints(A, y0, x_min=0, method='trf'):
     
     return x, y
 
-# 5. Метод координатного спуска
+# 4. Метод координатного спуска
 def solve_with_coordinate_descent(A, y0, x_min=0, max_iter=1000):
     
     n = A.shape[1]
@@ -149,7 +124,7 @@ def solve_with_coordinate_descent(A, y0, x_min=0, max_iter=1000):
     
     return x, y
 
-# 6. Метод градиентного спуска с проекцией
+# 5. Метод градиентного спуска с проекцией
 def solve_with_projected_gradient_descent(A, y0, x_min=0, max_iter=1000, initial_step_size=0.01):
     
     n = A.shape[1]
@@ -183,7 +158,7 @@ def solve_with_projected_gradient_descent(A, y0, x_min=0, max_iter=1000, initial
     
     return x, y
 
-# 7. Генетический алгоритм
+# 6. Генетический алгоритм
 def solve_with_genetic_algorithm(A, y0, x_min=0, population_size=100, generations=50, cxpb=0.5, mutpb=0.2):
     n = A.shape[1]
     
@@ -280,7 +255,7 @@ def solve_with_genetic_algorithm(A, y0, x_min=0, population_size=100, generation
     
     return x, y
 
-# 8. Метод имитации отжига
+# 7. Метод имитации отжига
 def solve_with_simulated_annealing(A, y0, x_min=0, initial_temp = 1000, cooling_rate = 0.99, max_iter = 10000):
     
     def objective_function(A, x, y0):
@@ -315,7 +290,7 @@ def solve_with_simulated_annealing(A, y0, x_min=0, initial_temp = 1000, cooling_
     y = np.dot(A, x)
     return x, y
 
-# 9. Метод ветвей и границ
+# 8. Метод ветвей и границ
 def solve_with_branch_and_bound(A, y0, x_min=0, solver_name="PULP_CBC_CMD", msg=0):
     m, n = A.shape
     
@@ -342,7 +317,6 @@ def solve_with_branch_and_bound(A, y0, x_min=0, solver_name="PULP_CBC_CMD", msg=
 
 functions = [
     solve_with_linear_programming_with_constraints,
-    solve_with_milp,
     solve_with_linear_inequality,
     solve_with_least_squares_with_constraints,
     solve_with_coordinate_descent,
@@ -354,7 +328,6 @@ functions = [
 
 functions_names = [
     "Linear Programming with Constraints",
-    "MILP",
     "Linear Inequality",
     "Least Squares with Constraints",
     "Coordinate Descent",
