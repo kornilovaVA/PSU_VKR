@@ -10,9 +10,22 @@ script_dir = Path(__file__).parent
 with open(script_dir/'test_data.json', 'r') as f:
     data = json.load(f)
     
-test_cases = [
-    (np.array(case['name']), np.array(case['matrix']), np.array(case['vector'])) for case in data.values()
-    ]   
+def process_xmin(xmin, num_columns):
+    if isinstance(xmin, (int, float)):
+        return np.full(num_columns, np.ceil(xmin), dtype=int)
+    elif isinstance(xmin, list):
+        return np.array(xmin, dtype=int)
+    else:
+        raise ValueError("xmin should be either an int, float, or list.")
+    
+test_cases = []
+for case in data.values():
+    A = np.array(case['matrix'])
+    y0 = np.array(case['vector'])
+    num_columns = A.shape[1]
+    xmin = process_xmin(case['xmin'], num_columns)
+    test_cases.append((case['name'], A, y0, xmin))
+
 test_cases_names = [
     case['name'] for case in data.values()
     ]
@@ -20,7 +33,7 @@ test_cases_names = [
 with open(script_dir/'config.json', 'r') as file:
     config = json.load(file)
 
-def run_comprehensive_tests(functions, test_cases, x_min=0):
+def run_comprehensive_tests(functions, test_cases):
     def calc_mse(y, y0):
         return np.mean((y - y0) ** 2)
 
@@ -36,8 +49,9 @@ def run_comprehensive_tests(functions, test_cases, x_min=0):
 
     for func in functions:
         func_name = func.__name__  
+        print(func_name)
         func_results = []
-        for name, A, y0 in test_cases:
+        for name, A, y0, xmin in test_cases:
             
             print(name)
             
@@ -45,7 +59,7 @@ def run_comprehensive_tests(functions, test_cases, x_min=0):
             
             start_time = time.time()
             try:
-                x, y = func(A, y0, x_min, **kwargs)
+                x, y = func(A, y0, xmin, **kwargs)
             except Exception as e:
                 print(f"Ошибка при выполнении функции {func_name}: {e}")
                 continue 
@@ -102,7 +116,7 @@ def save_results_to_excel(results, functions_names, test_cases_names, filename="
 
     print(f"Results saved to {filename}")
 
-results = run_comprehensive_tests(functions, test_cases, x_min=0)
+results = run_comprehensive_tests(functions, test_cases)
 
-excel_file_path = script_dir / "results.xlsx"
+excel_file_path = script_dir / "data/results.xlsx"
 save_results_to_excel(results, functions_names, test_cases_names, filename=excel_file_path)

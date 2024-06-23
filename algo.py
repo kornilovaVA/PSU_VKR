@@ -9,12 +9,35 @@ solver_dict = {
     "CLARABEL": cp.CLARABEL
 }
 
+def validate_input_data(A, y0, x_min):
+    if not np.all(np.isin(A, [0, 1])):
+        return False
+    
+    if np.any(y0 < 0):
+        return False
+    
+    if np.any(x_min < 0):
+        return False
+    
+    if len(y0.shape) != 1:
+        return False
+    
+    if A.shape[0] != y0.shape[0]:
+        return False
+    
+    return True
+
 # 1. Линейное программирование
 def solve_with_linear_programming_with_constraints(A, y0, x_min=0, method='highs'):
+    
     n = A.shape[1]
     
     if isinstance(x_min, (int, float)):
         x_min = np.full(n, np.ceil(x_min), dtype=int)
+    
+    if not validate_input_data(A, y0, x_min):
+        raise ValueError("Invalid input")
+    print("Check!")
     
     c = np.ones(n)
     A_ub = -A
@@ -35,14 +58,13 @@ def solve_with_linear_programming_with_constraints(A, y0, x_min=0, method='highs
 # 2. Метод последовательного квадратичного программирования (SQP)
 def solve_with_linear_inequality(A, y0, x_min=0, solver_name="CLARABEL"):
     
-    # Проверка размеров матрицы и вектора
-    if A.shape[0] != y0.shape[0]:
-        raise ValueError("Размерности матрицы A и вектора y0 не совпадают.")
-    
     n = A.shape[1]
     
     if isinstance(x_min, (int, float)):
         x_min = np.full(n, np.ceil(x_min), dtype=int)
+        
+    if not validate_input_data(A, y0, x_min):
+        raise ValueError("Invalid input")
     
     # Переменные оптимизации
     x = cp.Variable(n)
@@ -75,6 +97,9 @@ def solve_with_least_squares_with_constraints(A, y0, x_min=0, method='trf'):
     
     if isinstance(x_min, (int, float)):
         x_min = np.full(n, np.ceil(x_min), dtype=int)
+        
+    if not validate_input_data(A, y0, x_min):
+        raise ValueError("Invalid input")
     
     bounds = (x_min, np.inf)
     result = lsq_linear(A, y0, bounds=bounds, method=method)
@@ -95,6 +120,9 @@ def solve_with_coordinate_descent(A, y0, x_min=0, max_iter=1000):
     
     if isinstance(x_min, (int, float)):
         x_min = np.full(n, np.ceil(x_min), dtype=int)
+        
+    if not validate_input_data(A, y0, x_min):
+        raise ValueError("Invalid input")
     
     x = x_min
     y = A @ x
@@ -131,6 +159,9 @@ def solve_with_projected_gradient_descent(A, y0, x_min=0, max_iter=1000, initial
     
     if isinstance(x_min, (int, float)):
         x_min = np.full(n, np.ceil(x_min), dtype=int)
+        
+    if not validate_input_data(A, y0, x_min):
+        raise ValueError("Invalid input")
     
     # Инициализация x
     x = np.maximum(np.max(A * y0[:, np.newaxis], axis=0).astype(int), x_min)
@@ -164,6 +195,9 @@ def solve_with_genetic_algorithm(A, y0, x_min=0, population_size=100, generation
     
     if isinstance(x_min, (int, float)):
         x_min = np.full(n, np.ceil(x_min), dtype=int)
+    
+    if not validate_input_data(A, y0, x_min):
+        raise ValueError("Invalid input")
     
     # Определение целевой функции
     def evaluate(individual):
@@ -258,15 +292,18 @@ def solve_with_genetic_algorithm(A, y0, x_min=0, population_size=100, generation
 # 7. Метод имитации отжига
 def solve_with_simulated_annealing(A, y0, x_min=0, initial_temp = 1000, cooling_rate = 0.99, max_iter = 10000):
     
-    def objective_function(A, x, y0):
-        y = np.dot(A, x)
-        penalty = np.sum(np.maximum(y0 - y, 0))  # штраф за нарушение условия y >= y0
-        return np.sum((y - y0)**2) + penalty
-    
     n = A.shape[1]
     
     if isinstance(x_min, (int, float)):
         x_min = np.full(n, np.ceil(x_min), dtype=int)
+        
+    if not validate_input_data(A, y0, x_min):
+        raise ValueError("Invalid input")
+    
+    def objective_function(A, x, y0):
+        y = np.dot(A, x)
+        penalty = np.sum(np.maximum(y0 - y, 0))  # штраф за нарушение условия y >= y0
+        return np.sum((y - y0)**2) + penalty
         
     x = np.random.randint(x_min, x_min + 10, size=n)  # начальное решение
     T = initial_temp
@@ -296,6 +333,9 @@ def solve_with_branch_and_bound(A, y0, x_min=0, solver_name="PULP_CBC_CMD", msg=
     
     if isinstance(x_min, (int, float)):
         x_min = np.full(n, np.ceil(x_min), dtype=int)
+        
+    if not validate_input_data(A, y0, x_min):
+        raise ValueError("Invalid input")
     
     model = pulp.LpProblem("Branch_and_Bound_Problem", pulp.LpMinimize)
     x = {i: pulp.LpVariable(f"x_{i}", lowBound=x_min[i], cat=pulp.LpInteger) for i in range(n)}
