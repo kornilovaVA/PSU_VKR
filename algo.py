@@ -1,12 +1,10 @@
 import numpy as np
 import pulp
 from deap import base, creator, tools, algorithms
-import cvxpy as cp
-from scipy.optimize import lsq_linear, linprog
+from scipy.optimize import lsq_linear, linprog, minimize
 
 solver_dict = {
-    "PULP_CBC_CMD": pulp.PULP_CBC_CMD,
-    "CLARABEL": cp.CLARABEL
+    "PULP_CBC_CMD": pulp.PULP_CBC_CMD
 }
 
 def validate_input_data(A, y0, x_min):
@@ -37,7 +35,6 @@ def solve_with_linear_programming_with_constraints(A, y0, x_min=0, method='highs
     
     if not validate_input_data(A, y0, x_min):
         raise ValueError("Invalid input")
-    print("Check!")
     
     c = np.ones(n)
     A_ub = -A
@@ -56,39 +53,39 @@ def solve_with_linear_programming_with_constraints(A, y0, x_min=0, method='highs
     return x, y
 
 # 2. Метод последовательного квадратичного программирования (SQP)
-def solve_with_linear_inequality(A, y0, x_min=0, solver_name="CLARABEL"):
-    
+def solve_with_sqp(A, y0, x_min=0, method='SLSQP', max_iter=100):
     n = A.shape[1]
-    
+
     if isinstance(x_min, (int, float)):
         x_min = np.full(n, np.ceil(x_min), dtype=int)
-        
+
     if not validate_input_data(A, y0, x_min):
         raise ValueError("Invalid input")
     
-    # Переменные оптимизации
-    x = cp.Variable(n)
-    y = A @ x
+    def objective(x):
+        y = A @ x
+        return (1 / len(y0)) * np.sum((y - y0) ** 2)
     
-    # Ограничения
-    constraints = [y >= y0, x >= x_min]
-    # Целевая функция (минимизация нормы)
-    objective = cp.Minimize(cp.norm(y - y0))
-    # Формулировка и решение задачи
-    problem = cp.Problem(objective, constraints)
-    # Решение задачи с использованием решателя по умолчанию (Clarabel)
-    problem.solve(solver=solver_dict[solver_name])
+    def constraint_y(x):
+        return A @ x - y0  # y >= y0 => A @ x - y0 >= 0
+    def constraint_x_min(x):
+        return x - x_min  # x >= x_min => x - x_min >= 0
     
-    # Проверка статуса решения
-    if problem.status not in ["infeasible", "unbounded"]:
-        x_int = np.round(x.value).astype(int)
-        y_result = A @ x_int
-        return x_int, y_result
+    x0 = np.maximum(x_min, np.zeros(n))
+    
+    constraints = [{'type': 'ineq', 'fun': constraint_y},
+                   {'type': 'ineq', 'fun': constraint_x_min}]
+    
+    result = minimize(objective, x0, method=method, constraints=constraints, options={'maxiter': max_iter})
+    
+    if result.success:
+        x_opt = np.round(result.x).astype(int)
+        y_result = A @ x_opt
+        return x_opt, y_result
     else:
         result_x = np.zeros(n, dtype=int)
         result_y = A @ result_x
-    
-    return result_x, result_y
+        return result_x, result_y
 
 # 3. Решение методом наименьших квадратов с ограничениями
 def solve_with_least_squares_with_constraints(A, y0, x_min=0, method='trf'):
@@ -357,7 +354,7 @@ def solve_with_branch_and_bound(A, y0, x_min=0, solver_name="PULP_CBC_CMD", msg=
 
 functions = [
     solve_with_linear_programming_with_constraints,
-    solve_with_linear_inequality,
+    solve_with_sqp,
     solve_with_least_squares_with_constraints,
     solve_with_coordinate_descent,
     solve_with_projected_gradient_descent,
@@ -368,7 +365,7 @@ functions = [
 
 functions_names = [
     "Linear Programming with Constraints",
-    "Linear Inequality",
+    "SQP",
     "Least Squares with Constraints",
     "Coordinate Descent",
     "Projected Gradient Descent",
